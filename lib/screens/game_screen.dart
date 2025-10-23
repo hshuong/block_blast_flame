@@ -1,3 +1,4 @@
+// lib/screens/game_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flame/game.dart';
@@ -22,7 +23,6 @@ class _GameScreenState extends State<GameScreen> {
     gameState = GameStateManager();
     game = BlockBlastGame(gameState: gameState);
     
-    // Listen for game over
     gameState.addListener(_checkGameOver);
   }
 
@@ -65,17 +65,21 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
           child: SafeArea(
-            child: Stack(
+            child: Column(
               children: [
-                // Game canvas - Không rebuild khi state thay đổi
-                GameWidget(game: game),
+                // 1. Best Score (Hàng 1)
+                _buildBestScoreSection(),
                 
-                // UI Overlay - Chỉ rebuild phần cần thiết
-                Positioned(
-                  top: 10,
-                  left: 10,
-                  right: 10,
-                  child: _buildHeader(),
+                const SizedBox(height: 8),
+                
+                // 2. Current Score (Hàng 2)
+                _buildCurrentScoreSection(),
+                
+                const SizedBox(height: 16),
+                
+                // 3. Board 8x8 + 4. 3 Blocks (Hàng 3 & 4 - Flame Game Area)
+                Expanded(
+                  child: GameWidget(game: game),
                 ),
               ],
             ),
@@ -85,114 +89,144 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget _buildHeader() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Responsive sizing
-        final isSmallScreen = constraints.maxWidth < 360;
-        final titleFontSize = isSmallScreen ? 8.0 : 10.0;
-        final valueFontSize = isSmallScreen ? 16.0 : 20.0;
-        final iconSize = isSmallScreen ? 28.0 : 32.0;
-        final cardPadding = isSmallScreen ? 8.0 : 12.0;
-        
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Chỉ rebuild khi score thay đổi
-            Selector<GameStateManager, int>(
-              selector: (_, state) => state.score,
-              builder: (_, score, __) => _buildStatCard(
-                title: 'SCORE',
-                value: '$score',
-                gradient: [Colors.blue.shade600, Colors.blue.shade800],
-                titleFontSize: titleFontSize,
-                valueFontSize: valueFontSize,
-                padding: cardPadding,
-              ),
-            ),
-            
-            // Chỉ rebuild khi level thay đổi
-            Selector<GameStateManager, int>(
-              selector: (_, state) => state.level,
-              builder: (_, level, __) => _buildStatCard(
-                title: 'LEVEL',
-                value: '$level',
-                gradient: [Colors.purple.shade600, Colors.purple.shade800],
-                titleFontSize: titleFontSize,
-                valueFontSize: valueFontSize,
-                padding: cardPadding,
-              ),
-            ),
-            
-            // Chỉ rebuild khi highScore thay đổi
-            Selector<GameStateManager, int>(
-              selector: (_, state) => state.highScore,
-              builder: (_, highScore, __) => _buildStatCard(
-                title: 'BEST',
-                value: '$highScore',
-                gradient: [Colors.amber.shade600, Colors.orange.shade800],
-                titleFontSize: titleFontSize,
-                valueFontSize: valueFontSize,
-                padding: cardPadding,
-              ),
-            ),
-            
-            IconButton(
-              onPressed: _showResetDialog,
-              icon: Icon(Icons.refresh, color: Colors.white, size: iconSize),
-              padding: EdgeInsets.all(4),
-              constraints: const BoxConstraints(),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildStatCard({
-    required String title,
-    required String value,
-    required List<Color> gradient,
-    required double titleFontSize,
-    required double valueFontSize,
-    required double padding,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.7),
-            fontSize: titleFontSize,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1,
-          ),
+  Widget _buildBestScoreSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFD700), Color(0xFFFF8C00)],
         ),
-        const SizedBox(height: 4),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding / 2),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: LinearGradient(colors: gradient),
-            boxShadow: [
-              BoxShadow(
-                color: gradient[0].withOpacity(0.3),
-                blurRadius: 10,
-                spreadRadius: 2,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.amber.withOpacity(0.3),
+            blurRadius: 15,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.emoji_events, color: Colors.white, size: 28),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'BEST SCORE',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              Selector<GameStateManager, int>(
+                selector: (_, state) => state.highScore,
+                builder: (_, highScore, __) => Text(
+                  '$highScore',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
-          child: Text(
-            value,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: valueFontSize,
-              fontWeight: FontWeight.bold,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrentScoreSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withOpacity(0.1),
+        border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          // Current Score
+          Expanded(
+            child: _buildStatItem(
+              label: 'SCORE',
+              selector: (GameStateManager state) => state.score,
+              gradient: [const Color(0xFF667EEA), const Color(0xFF764BA2)],
             ),
           ),
-        ),
-      ],
+          
+          Container(width: 1, height: 40, color: Colors.white24),
+          
+          // Level
+          Expanded(
+            child: _buildStatItem(
+              label: 'LEVEL',
+              selector: (GameStateManager state) => state.level,
+              gradient: [const Color(0xFFF093FB), const Color(0xFFF5576C)],
+            ),
+          ),
+          
+          Container(width: 1, height: 40, color: Colors.white24),
+          
+          // Reset Button
+          Expanded(
+            child: Center(
+              child: IconButton(
+                onPressed: _showResetDialog,
+                icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+                iconSize: 32,
+                tooltip: 'Reset Game',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem({
+    required String label,
+    required int Function(GameStateManager) selector,
+    required List<Color> gradient,
+  }) {
+    return Selector<GameStateManager, int>(
+      selector: (_, state) => selector(state),
+      builder: (_, value, __) => Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.7),
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: LinearGradient(colors: gradient),
+            ),
+            child: Text(
+              '$value',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

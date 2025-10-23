@@ -1,5 +1,6 @@
+// lib/game/block_blast_game.dart
 import 'package:flame/game.dart';
-import 'package:flame/components.dart';
+//import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../models/game_board.dart';
 import 'components/board_component.dart';
@@ -16,16 +17,11 @@ class BlockBlastGame extends FlameGame {
   double cellSize = 42;
   double cellMargin = 2;
   double blockCellSize = 28;
-  double boardY = 0;
-  double blockY = 0;
-  double titleFontSize = 32;
-  double scoreFontSize = 24;
-  double instructionFontSize = 14;
 
   BlockBlastGame({required this.gameState});
 
   @override
-  Color backgroundColor() => const Color(0xFF0F2027);
+  Color backgroundColor() => Colors.transparent;
 
   @override
   Future<void> onLoad() async {
@@ -33,13 +29,13 @@ class BlockBlastGame extends FlameGame {
     
     _calculateResponsiveSizes();
     
-    // Tạo board component với kích thước responsive
+    // Tạo board component - đặt ở giữa màn hình game
     boardComponent = BoardComponent(
       board: gameState.board,
       cellSize: cellSize,
       cellMargin: cellMargin,
     );
-    boardComponent!.position = Vector2(size.x / 2, boardY);
+    boardComponent!.position = Vector2(size.x / 2, size.y * 0.35);
     await add(boardComponent!);
     
     // Tạo blocks
@@ -50,48 +46,31 @@ class BlockBlastGame extends FlameGame {
   }
 
   void _calculateResponsiveSizes() {
-    // Tính toán dựa trên kích thước màn hình nhỏ hơn
-    final minDimension = size.x < size.y ? size.x : size.y;
-    
-    // Board chiếm khoảng 85% chiều rộng màn hình
-    final boardWidth = size.x * 0.85;
-    cellSize = (boardWidth - 10) / 8.5; // 8 cells + margins
+    // Board chiếm khoảng 90% chiều rộng game area
+    final boardWidth = size.x * 0.90;
+    cellSize = (boardWidth - 10) / 8.5;
     cellMargin = cellSize * 0.05;
     
-    // Block size nhỏ hơn cell size một chút
+    // Block size nhỏ hơn cell size
     blockCellSize = cellSize * 0.65;
     
-    // Vị trí responsive - Di chuyển board xuống để tránh che chữ
-    boardY = size.y * 0.45; // Tăng từ 0.40 lên 0.45
-    blockY = size.y * 0.85; // Tăng từ 0.80 lên 0.85
-    
-    // Font sizes responsive
-    titleFontSize = minDimension * 0.08;
-    scoreFontSize = minDimension * 0.06;
-    instructionFontSize = minDimension * 0.035;
-    
-    debugPrint('📐 Responsive sizes - cellSize: $cellSize, blockCellSize: $blockCellSize');
+    debugPrint('📐 Game sizes - cellSize: $cellSize, blockCellSize: $blockCellSize');
   }
 
   @override
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
     
-    // Tính toán lại kích thước khi màn hình thay đổi
     _calculateResponsiveSizes();
     
-    // Cập nhật board nếu đã được khởi tạo
     if (boardComponent != null) {
       boardComponent!.updateCellSize(cellSize, cellMargin);
-      boardComponent!.position = Vector2(size.x / 2, boardY);
-      
-      // Cập nhật vị trí blocks
+      boardComponent!.position = Vector2(size.x / 2, size.y * 0.35);
       _updateBlockPositions();
     }
   }
 
   void _onGameStateChanged() {
-    // Remove old board component và tạo mới
     if (boardComponent != null) {
       boardComponent!.removeFromParent();
     }
@@ -101,10 +80,9 @@ class BlockBlastGame extends FlameGame {
       cellSize: cellSize,
       cellMargin: cellMargin,
     );
-    boardComponent!.position = Vector2(size.x / 2, boardY);
+    boardComponent!.position = Vector2(size.x / 2, size.y * 0.35);
     add(boardComponent!);
     
-    // Regenerate blocks if needed
     _regenerateBlocks();
   }
 
@@ -114,39 +92,30 @@ class BlockBlastGame extends FlameGame {
       comp?.removeFromParent();
     }
     
-    // Đếm số block thực tế
-    List<int> activeBlockIndices = [];
+    // Tính toán 3 vị trí cố định cho blocks
+    // Chia màn hình thành 4 phần, blocks ở vị trí 1/4, 2/4, 3/4
+    final position1 = size.x * 0.25; // 25% từ trái
+    final position2 = size.x * 0.50; // 50% từ trái (giữa)
+    final position3 = size.x * 0.75; // 75% từ trái
+    
+    final blockY = size.y * 0.85;
+    
+    final fixedPositions = [position1, position2, position3];
+    
+    // Tạo components cho từng vị trí cố định
     for (int i = 0; i < 3; i++) {
       if (gameState.currentBlocks[i] != null) {
-        activeBlockIndices.add(i);
-      }
-    }
-    
-    if (activeBlockIndices.isEmpty) return;
-    
-    // Tính toán khoảng cách để căn giữa
-    final blockSpacing = size.x * 0.25; // Khoảng cách giữa các block
-    final totalWidth = blockSpacing * (activeBlockIndices.length - 1);
-    final startX = (size.x - totalWidth) / 2;
-    
-    // Tạo components mới với vị trí căn giữa
-    int positionIndex = 0;
-    for (int i = 0; i < 3; i++) {
-      if (gameState.currentBlocks[i] != null) {
-        final xPos = startX + (blockSpacing * positionIndex);
-        
         final blockComp = DraggableBlockComponent(
           block: gameState.currentBlocks[i]!,
           blockIndex: i,
           cellSize: blockCellSize,
-          position: Vector2(xPos, blockY),
+          position: Vector2(fixedPositions[i], blockY),
           onBlockDragStart: _handleBlockDragStart,
           onBlockDragUpdate: _handleBlockDragUpdate,
           onBlockDragEnd: _handleBlockDragEnd,
         );
         blockComponents[i] = blockComp;
         add(blockComp);
-        positionIndex++;
       } else {
         blockComponents[i] = null;
       }
@@ -154,28 +123,17 @@ class BlockBlastGame extends FlameGame {
   }
 
   void _updateBlockPositions() {
-    // Đếm số block thực tế
-    List<int> activeBlockIndices = [];
+    // 3 vị trí cố định
+    final position1 = size.x * 0.25;
+    final position2 = size.x * 0.50;
+    final position3 = size.x * 0.75;
+    final blockY = size.y * 0.85;
+    
+    final fixedPositions = [position1, position2, position3];
+    
     for (int i = 0; i < 3; i++) {
       if (blockComponents[i] != null) {
-        activeBlockIndices.add(i);
-      }
-    }
-    
-    if (activeBlockIndices.isEmpty) return;
-    
-    // Tính toán khoảng cách để căn giữa
-    final blockSpacing = size.x * 0.25;
-    final totalWidth = blockSpacing * (activeBlockIndices.length - 1);
-    final startX = (size.x - totalWidth) / 2;
-    
-    // Cập nhật vị trí
-    int positionIndex = 0;
-    for (int i = 0; i < 3; i++) {
-      if (blockComponents[i] != null) {
-        final xPos = startX + (blockSpacing * positionIndex);
-        blockComponents[i]!.position = Vector2(xPos, blockY);
-        positionIndex++;
+        blockComponents[i]!.position = Vector2(fixedPositions[i], blockY);
       }
     }
   }
@@ -262,41 +220,5 @@ class BlockBlastGame extends FlameGame {
   void onRemove() {
     gameState.removeListener(_onGameStateChanged);
     super.onRemove();
-  }
-
-  @override
-  void render(Canvas canvas) {
-    super.render(canvas);
-    
-    // Vẽ title ở vị trí cao hơn
-    final textPaint = TextPaint(
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: titleFontSize,
-        fontWeight: FontWeight.bold,
-      ),
-    );
-    textPaint.render(
-      canvas,
-      'BLOCK BLAST',
-      Vector2(size.x / 2, size.y * 0.05), // Giảm từ 0.08 xuống 0.05
-      anchor: Anchor.center,
-    );
-    
-    // Không vẽ score ở đây nữa vì đã có trong game_screen.dart
-    
-    // Vẽ instruction
-    final instructionPaint = TextPaint(
-      style: TextStyle(
-        color: Colors.white.withOpacity(0.6),
-        fontSize: instructionFontSize,
-      ),
-    );
-    instructionPaint.render(
-      canvas,
-      '👆 Drag blocks to the board',
-      Vector2(size.x / 2, size.y * 0.72), // Điều chỉnh vị trí
-      anchor: Anchor.center,
-    );
   }
 }

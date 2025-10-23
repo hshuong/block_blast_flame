@@ -14,9 +14,8 @@ class BlockComponent extends PositionComponent {
     required this.block,
     required this.blockIndex,
     this.cellSize = 30.0,
-    Vector2? position,
+    super.position,
   }) : super(
-    position: position,
     anchor: Anchor.center,
   );
 
