@@ -72,9 +72,9 @@ class _GameScreenState extends State<GameScreen> {
                 
                 // UI Overlay - Chỉ rebuild phần cần thiết
                 Positioned(
-                  top: 20,
-                  left: 20,
-                  right: 20,
+                  top: 10,
+                  left: 10,
+                  right: 10,
                   child: _buildHeader(),
                 ),
               ],
@@ -86,44 +86,66 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // Chỉ rebuild khi score thay đổi
-        Selector<GameStateManager, int>(
-          selector: (_, state) => state.score,
-          builder: (_, score, __) => _buildStatCard(
-            title: 'SCORE',
-            value: '$score',
-            gradient: [Colors.blue.shade600, Colors.blue.shade800],
-          ),
-        ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Responsive sizing
+        final isSmallScreen = constraints.maxWidth < 360;
+        final titleFontSize = isSmallScreen ? 8.0 : 10.0;
+        final valueFontSize = isSmallScreen ? 16.0 : 20.0;
+        final iconSize = isSmallScreen ? 28.0 : 32.0;
+        final cardPadding = isSmallScreen ? 8.0 : 12.0;
         
-        // Chỉ rebuild khi level thay đổi
-        Selector<GameStateManager, int>(
-          selector: (_, state) => state.level,
-          builder: (_, level, __) => _buildStatCard(
-            title: 'LEVEL',
-            value: '$level',
-            gradient: [Colors.purple.shade600, Colors.purple.shade800],
-          ),
-        ),
-        
-        // Chỉ rebuild khi highScore thay đổi
-        Selector<GameStateManager, int>(
-          selector: (_, state) => state.highScore,
-          builder: (_, highScore, __) => _buildStatCard(
-            title: 'BEST',
-            value: '$highScore',
-            gradient: [Colors.amber.shade600, Colors.orange.shade800],
-          ),
-        ),
-        
-        IconButton(
-          onPressed: _showResetDialog,
-          icon: const Icon(Icons.refresh, color: Colors.white, size: 32),
-        ),
-      ],
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Chỉ rebuild khi score thay đổi
+            Selector<GameStateManager, int>(
+              selector: (_, state) => state.score,
+              builder: (_, score, __) => _buildStatCard(
+                title: 'SCORE',
+                value: '$score',
+                gradient: [Colors.blue.shade600, Colors.blue.shade800],
+                titleFontSize: titleFontSize,
+                valueFontSize: valueFontSize,
+                padding: cardPadding,
+              ),
+            ),
+            
+            // Chỉ rebuild khi level thay đổi
+            Selector<GameStateManager, int>(
+              selector: (_, state) => state.level,
+              builder: (_, level, __) => _buildStatCard(
+                title: 'LEVEL',
+                value: '$level',
+                gradient: [Colors.purple.shade600, Colors.purple.shade800],
+                titleFontSize: titleFontSize,
+                valueFontSize: valueFontSize,
+                padding: cardPadding,
+              ),
+            ),
+            
+            // Chỉ rebuild khi highScore thay đổi
+            Selector<GameStateManager, int>(
+              selector: (_, state) => state.highScore,
+              builder: (_, highScore, __) => _buildStatCard(
+                title: 'BEST',
+                value: '$highScore',
+                gradient: [Colors.amber.shade600, Colors.orange.shade800],
+                titleFontSize: titleFontSize,
+                valueFontSize: valueFontSize,
+                padding: cardPadding,
+              ),
+            ),
+            
+            IconButton(
+              onPressed: _showResetDialog,
+              icon: Icon(Icons.refresh, color: Colors.white, size: iconSize),
+              padding: EdgeInsets.all(4),
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -131,6 +153,9 @@ class _GameScreenState extends State<GameScreen> {
     required String title,
     required String value,
     required List<Color> gradient,
+    required double titleFontSize,
+    required double valueFontSize,
+    required double padding,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,14 +164,14 @@ class _GameScreenState extends State<GameScreen> {
           title,
           style: TextStyle(
             color: Colors.white.withOpacity(0.7),
-            fontSize: 10,
+            fontSize: titleFontSize,
             fontWeight: FontWeight.bold,
             letterSpacing: 1,
           ),
         ),
         const SizedBox(height: 4),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding / 2),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             gradient: LinearGradient(colors: gradient),
@@ -160,9 +185,9 @@ class _GameScreenState extends State<GameScreen> {
           ),
           child: Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 20,
+              fontSize: valueFontSize,
               fontWeight: FontWeight.bold,
             ),
           ),

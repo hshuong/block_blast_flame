@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import '../../models/game_board.dart';
 import '../../models/block_shape.dart';
 
-/// Component hiển thị bảng chơi 8x8
+/// Component hiển thị bảng chơi 8x8 với responsive sizing
 class BoardComponent extends PositionComponent {
   final GameBoard board;
-  final double cellSize;
-  final double cellMargin;
+  double cellSize;
+  double cellMargin;
   
   BlockShape? previewBlock;
   int? previewRow;
@@ -15,16 +15,26 @@ class BoardComponent extends PositionComponent {
 
   BoardComponent({
     required this.board,
-    this.cellSize = 45.0,
-    this.cellMargin = 2.0,
+    required this.cellSize,
+    required this.cellMargin,
   }) : super(anchor: Anchor.center);
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    
+    _updateSize();
+  }
+
+  void _updateSize() {
     final boardSize = GameBoard.size * (cellSize + cellMargin) + cellMargin;
     size = Vector2.all(boardSize);
+  }
+
+  /// Update cell size (cho responsive)
+  void updateCellSize(double newCellSize, double newCellMargin) {
+    cellSize = newCellSize;
+    cellMargin = newCellMargin;
+    _updateSize();
   }
 
   @override
@@ -36,7 +46,7 @@ class BoardComponent extends PositionComponent {
       ..color = const Color(0xFF1A252F);
     final bgRect = RRect.fromRectAndRadius(
       Rect.fromLTWH(0, 0, size.x, size.y),
-      const Radius.circular(16),
+      Radius.circular(size.x * 0.04), // Responsive border radius
     );
     canvas.drawRRect(bgRect, bgPaint);
 
@@ -44,7 +54,7 @@ class BoardComponent extends PositionComponent {
     final borderPaint = Paint()
       ..color = Colors.white.withOpacity(0.1)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = size.x * 0.005; // Responsive stroke width
     canvas.drawRRect(bgRect, borderPaint);
 
     // Vẽ các cells
@@ -83,7 +93,7 @@ class BoardComponent extends PositionComponent {
     // Vẽ cell
     final cellRect = RRect.fromRectAndRadius(
       Rect.fromLTWH(x, y, cellSize, cellSize),
-      const Radius.circular(4),
+      Radius.circular(cellSize * 0.1),
     );
 
     if (isPreview && cellColor == null) {
@@ -95,7 +105,7 @@ class BoardComponent extends PositionComponent {
       final borderPaint = Paint()
         ..color = previewBlock!.color.withOpacity(0.8)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2;
+        ..strokeWidth = cellSize * 0.05;
       canvas.drawRRect(cellRect, borderPaint);
     } else if (cellColor != null) {
       // Vẽ cell đã fill với gradient
@@ -119,13 +129,14 @@ class BoardComponent extends PositionComponent {
       final borderPaint = Paint()
         ..color = _darkenColor(cellColor, 0.3)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5;
+        ..strokeWidth = cellSize * 0.035;
       canvas.drawRRect(cellRect, borderPaint);
       
       // Highlight
+      final highlightSize = cellSize * 0.3;
       final highlightRect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(x + 2, y + 2, cellSize * 0.3, cellSize * 0.3),
-        const Radius.circular(2),
+        Rect.fromLTWH(x + cellSize * 0.05, y + cellSize * 0.05, highlightSize, highlightSize),
+        Radius.circular(cellSize * 0.05),
       );
       final highlightPaint = Paint()
         ..color = Colors.white.withOpacity(0.3);
@@ -138,7 +149,7 @@ class BoardComponent extends PositionComponent {
       final borderPaint = Paint()
         ..color = Colors.grey.withOpacity(0.1)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.5;
+        ..strokeWidth = cellSize * 0.012;
       canvas.drawRRect(cellRect, borderPaint);
     }
   }
